@@ -29,13 +29,14 @@ void main() {
 <script type="x-shader/x-fragment" id="fboRenderFrag">
 uniform sampler2D map;
 uniform float effector;
+uniform vec3 color;
 
 varying vec2 vUv;
 varying vec4 vPosition;
 
 void main() 
 {
-    gl_FragColor = vec4( 0.2,0.3,0.1,1.0 );
+    gl_FragColor = vec4(color.x,color.y,color.z,0.3);
     gl_FragColor *= 1.5;
 }
 

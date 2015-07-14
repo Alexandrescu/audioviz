@@ -39,7 +39,7 @@
             console.log('[LOG] Playing with particles now');
             var camera, scene;
             var geometry, material, mesh, mesh2, material2;
-            var texSize = 1000;
+            var texSize = 1024;
             var dispSize = {x:window.innerWidth, y:window.innerHeight};
             var data;
             var texture;
@@ -60,10 +60,10 @@
                     }
                 }
                 levels.sort();
-                simulationShader.uniforms.multiplier.value = levels[levels.length-1] * 1.1;
+                simulationShader.uniforms.multiplier.value = levels[levels.length-2] * 1.1;
             }
             function init() {
-                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+                camera = new THREE.PerspectiveCamera(15, window.innerWidth / window.innerHeight, 1, 10000);
                 camera.position.z = 2;
 
                 scene = new THREE.Scene();
@@ -131,7 +131,8 @@
                         "width": { type: "f", value: texSize },
                         "height": { type: "f", value: texSize },
                         "pointSize": { type: "f", value: 3 },
-                        "effector" : { type: "f", value: 0 }
+                        "effector" : { type: "f", value: 0 },
+                        "color" : {type: "c", value: new THREE.Color(0.2, 0.3, 0.1)}
 
                     },
                     vertexShader: document.getElementById('fboRenderVert').innerHTML,
@@ -158,21 +159,20 @@
 
             }
 
-            var a = 0;
+            var angle = 0;
+            var diff = Math.PI / 1000; 
             function animate(t) {
                 requestAnimationFrame(animate);
 
                 simulationShader.uniforms.timer.value = t;
-
+                material2.uniforms.color.value = getColor(angle);
                 // swap
                 var tmp = fboParticles.in;
                 fboParticles.in = fboParticles.out;
                 fboParticles.out = tmp;
 
-                if (a < 10) { 
-                    console.log(fboParticles.in);
-                    a++;
-                }
+                angle += diff;
+
                 simulationShader.uniforms.tPositions.value = fboParticles.in;
                 fboParticles.simulate(fboParticles.out);
                 material2.uniforms.map.value = fboParticles.out;

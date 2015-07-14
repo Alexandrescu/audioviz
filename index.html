@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" ng-app='audioViz'>
 	<head>
-		<title>three.js demo</title>
+		<title>AUDIOVIZARD</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -22,16 +22,24 @@
 		<script src="./bower_components/three.js/build/three.js"></script>
 		<script src="./bower_components/three.js/examples/js/renderers/Projector.js"></script>
 		<script src="./bower_components/three.js/examples/js/renderers/CanvasRenderer.js"></script>
+		<script src="./bower_components/three.js/examples/js/g"></script>
+		<script src="./app/utils/three.js/FBOUtils.js"></script>
+		<script src="./app/utils/three.js/OrbitControls.js"></script>
 
 		<script src="./app.js"></script>
 		<script src="./app/audio_analysis/audio_analyser_service.js"></script>
 		<script src="./app/presets/sphere/sphere_directive.js"></script>
 		<script src="./app/presets/sphere/sphere_controller.js"></script>
+		<script src="./app/presets/particle_sun/particle_sun_controller.js"></script>
+		<script src="./app/presets/particle_sun/particle_sun_directive.js"></script>
 
 	</head>
 	<body ng-controller="MainController">
-        <audio-viz-sphere-preset audio-analyser="audioAnalyser">
-        </audio-viz-sphere-preset>
+        <!--<audio-viz-sphere-preset audio-analyser="audioAnalyser">-->
+        <!--</audio-viz-sphere-preset>-->
+
+        <audio-viz-particle-sun-preset audio-analyser="audioAnalyser">
+        </audio-viz-particle-sun-preset>
 
 	</body>
 </html>

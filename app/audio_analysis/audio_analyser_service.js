@@ -23,7 +23,9 @@
             request.onload = function() {
                 self.audioContext.decodeAudioData(request.response, function(buffer) {
                     self.audioBuffer = buffer;
-                    self.playSong();
+                    if (self.playSongRequested) {
+                        self.playSong();
+                    }
                 }, null);
             }
             request.send();
@@ -32,6 +34,7 @@
         Analyser.prototype.playSong = function () {
             var self = this;
             if (!self.audioBuffer) {
+                self.playSongRequested = true;
                 return;
             }
             self.source = self.audioContext.createBufferSource();

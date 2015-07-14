@@ -65,7 +65,7 @@
                         var randPos = getRandomPoint(angleRange.low, angleRange.diff);
                         particle.position.x = randPos.x;
                         particle.position.y = randPos.y;
-                        particle.position.z = (Math.random() * 2 - 1) * 2;
+                        particle.position.z = (Math.random() * 2 - 1) * .5;
                         particle.position.normalize();
                         particle.oldPosition = particle.position.clone();
                         particle.position.multiplyScalar( Math.random() * 20 + 250 );
@@ -76,7 +76,7 @@
                     for (var i = 0; i < 10; i++) {
                         var geometry = new THREE.Geometry();
                         var randPos = getRandomPoint(angleRange.low, angleRange.diff);
-                        var vertex = new THREE.Vector3(randPos.x, randPos.y, (Math.random() * 2 - 1) * 2);
+                        var vertex = new THREE.Vector3(randPos.x, randPos.y, (Math.random() * 2 - 1) * .5);
                         vertex.normalize();
                         vertex.multiplyScalar( 250 );
 

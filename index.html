@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" ng-app='audioViz'>
+	<head>
+		<title>three.js demo</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			a {
+				color:#0078ff;
+			}
+            h1 {
+                color: white;
+            }
+		</style>
+		<script src="./bower_components/angular/angular.js"></script>
+		<script src="./bower_components/three.js/build/three.js"></script>
+		<script src="./bower_components/three.js/examples/js/renderers/Projector.js"></script>
+		<script src="./bower_components/three.js/examples/js/renderers/CanvasRenderer.js"></script>
+
+		<script src="./app.js"></script>
+		<script src="./app/audio_analysis/audio_analyser_service.js"></script>
+		<script src="./app/presets/sphere/sphere_directive.js"></script>
+		<script src="./app/presets/sphere/sphere_controller.js"></script>
+
+	</head>
+	<body ng-controller="MainController">
+        <audio-viz-sphere-preset audio-analyser="audioAnalyser">
+        </audio-viz-sphere-preset>
+
+	</body>
+</html>

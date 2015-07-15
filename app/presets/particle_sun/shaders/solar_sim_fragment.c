@@ -126,14 +126,66 @@ float snoise(vec4 v)
 
 }
 
+vec3 getClosestPointOnPalantirLogo(vec3 pos) {
+    // normalize pair (pos.x, pos.y)
+    float dist = sqrt(pos.x * pos.x + pos.y * pos.y) ;
+    if (pos.z > 0.1 || pos.z < -0.1) {
+        return vec3(pos.x / dist, pos.y / dist, pos.z * 0.6 );
+    }
+    return vec3(pos.x / dist, pos.y / dist, pos.z );
+}
+
+vec3 getPullToPalantirLogo(vec3 pos) {
+    vec3 closestPoint = getClosestPointOnPalantirLogo(pos).xyz;
+    return vec3((-pos.x + closestPoint.x) * .005,
+                (-pos.y + closestPoint.y) * .005,
+                (-pos.z + closestPoint.z) * .005);
+}
+
+bool onLogo(vec3 pos) {
+    float dist = sqrt(pos.x * pos.x + pos.y * pos.y);
+    return (dist < 1.1) && (dist > 0.9) && (pos.z > -0.2) && (pos.z < 0.2);
+}
+
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
 void main() 
 {
     vec3 origin = texture2D( origin, vUv ).xyz;
     vec3 pos = texture2D( tPositions, vUv ).xyz;
+    vec3 palantirForce = getPullToPalantirLogo(pos).xyz;
 
-    pos.x += snoise(vec4(pos.x, pos.y, pos.z, timer/10000.0)) * 0.01;
-    pos.y += snoise(vec4(pos.x, pos.y, pos.z, 1.352+timer/10000.0)) * 0.01;
-    pos.z += snoise(vec4(pos.x, pos.y, pos.z, 12.352+timer/10000.0)) * 0.01;
+    /*pos.x += snoise(vec4(pos.x, pos.y, pos.z, timer/10000.0)) * 0.01;*/
+    /*pos.y += snoise(vec4(pos.x, pos.y, pos.z, 1.352+timer/10000.0)) * 0.01;*/
+    /*pos.z += snoise(vec4(pos.x, pos.y, pos.z, 12.352+timer/10000.0)) * 0.01;*/
+
+
+    /*pos.x += gravityForce.x;*/
+    /*pos.y += gravityForce.y;*/
+    /*pos.z += gravityForce.z;*/
+
+    pos.x += palantirForce.x;
+    pos.y += palantirForce.y;
+    pos.z += palantirForce.z;
+
+    bool isOnLogo = onLogo(pos);
+
+    if (isOnLogo) {
+        pos.x -= palantirForce.x * multiplier * 300.0;
+        pos.y -= palantirForce.y * multiplier * 300.0;
+        /*pos.z -= palantirForce.z * multiplier * 300.0;*/
+    } else {
+        pos.x += palantirForce.x;
+        pos.y += palantirForce.y;
+        pos.z += palantirForce.z;
+    }
+
+    float randomNum = rand(vec2(pos.x, pos.y));
+    pos.y -= randomNum * 0.001;
+
+
+
 
     /*pos.x = origin.x * multiplier;*/
     /*pos.y = origin.y * multiplier;*/

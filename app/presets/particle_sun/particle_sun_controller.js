@@ -28,7 +28,7 @@
         var vertexShaderPromise = $http.get('app/presets/particle_sun/shaders/sim_vertex.c');
         vertexShaderPromise.success(function(resp) {
             simVertexShader = resp;
-            var fragmentShaderPromise = $http.get('app/presets/particle_sun/shaders/sim_fragment.c');
+            var fragmentShaderPromise = $http.get('app/presets/particle_sun/shaders/solar_sim_fragment.c');
             fragmentShaderPromise.success(function(resp) {
                 simFragmentShader = resp;
                 start();
@@ -39,7 +39,7 @@
             console.log('[LOG] Playing with particles now');
             var camera, scene;
             var geometry, material, mesh, mesh2, material2;
-            var texSize = 1024;
+            var texSize = 1224;
             var dispSize = {x:window.innerWidth, y:window.innerHeight};
             var data;
             var texture;
@@ -52,7 +52,6 @@
             function updateSphere(audioData) {
                 var max_level = 0; 
                 var levels = [];
-                var c = 0;
                 for (var level in audioData) {
                     levels.push(audioData[level]);
                     if (audioData[level] > max_level) {
@@ -61,6 +60,12 @@
                 }
                 levels.sort();
                 simulationShader.uniforms.multiplier.value = levels[levels.length-2] * 1.1;
+
+                var tlevels = [];
+                for (var level in audioData) {
+                    tlevels.push(audioData[level]);
+                }
+                //simulationShader.uniforms.audioLevels =  tlevels;
             }
             function init() {
                 camera = new THREE.PerspectiveCamera(15, window.innerWidth / window.innerHeight, 1, 10000);
@@ -93,12 +98,12 @@
                 rtTexturePos2 = rtTexturePos.clone();
 
                 simulationShader = new THREE.ShaderMaterial({
-
                     uniforms: {
                         tPositions: { type: "t", value: texture },
                         origin: { type: "t", value: texture },
                         timer: { type: "f", value: 0},
-                        multiplier: { type: "f", value: 0.0}
+                        multiplier: { type: "f", value: 0.0},
+                        audioLevels: { type: "uFloatArray", value: [1, 0.5, 3, 2]}
                     },
 
                     vertexShader: simVertexShader,
@@ -124,9 +129,7 @@
                 }
 
                 material2 = new THREE.ShaderMaterial( {
-
                     uniforms: {
-
                         "map": { type: "t", value: rtTexturePos },
                         "width": { type: "f", value: texSize },
                         "height": { type: "f", value: texSize },

@@ -101,8 +101,8 @@
                 velocitySimShader.uniforms.audioLevels.value = tlevels;
             }
             function init() {
-                camera = new THREE.PerspectiveCamera(15, window.innerWidth / window.innerHeight, 1, 10000);
-                camera.position.z = 2;
+                camera = new THREE.PerspectiveCamera(15, window.innerWidth / window.innerHeight, 1, 1000000);
+                camera.position.z = 60;
 
                 scene = new THREE.Scene();
 

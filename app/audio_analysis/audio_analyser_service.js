@@ -12,7 +12,6 @@
         }
 
         Analyser.prototype.loadSong = function(file_location) {
-
             var self = this;
 
             var request = new XMLHttpRequest();

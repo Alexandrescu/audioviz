@@ -71,7 +71,7 @@
             console.log('[LOG] Playing with particles now');
             var camera, scene;
             var geometry, material, mesh, mesh2, material2;
-            var texSize = 768;
+            var texSize = 1024;
             var dispSize = {x:window.innerWidth, y:window.innerHeight};
             var velocities, positions;
             var positionTexture, velocityTexture;
@@ -162,7 +162,8 @@
                         timer: { type: "f", value: 0},
                         tPositions: { type: "t", value: positionTexture },
                         tVelocities: { type: "t", value: velocityTexture },
-                        randomNum: {type : "f", value: 0.02}
+                        randomNum: {type : "f", value: 0.02},
+                        rotation: {type : "f", value: 0.00}
                     },
                     vertexShader: shaders.simVelocityVertexShader.shader,
                     fragmentShader: shaders.simVelocityFragmentShader.shader
@@ -247,6 +248,7 @@
                 velocitySimShader.uniforms.tVelocities.value = fboParticleVelocities.in;
                 velocitySimShader.uniforms.tPositions.value = fboParticlePositions.out;
                 velocitySimShader.uniforms.randomNum.value = (Math.random() - 0.5) * 0.005;
+                velocitySimShader.uniforms.rotation.value = angle * .5;
                 fboParticleVelocities.simulate(fboParticleVelocities.out);
                 //console.log('[LOG] Calculating velocities... done');
                 //

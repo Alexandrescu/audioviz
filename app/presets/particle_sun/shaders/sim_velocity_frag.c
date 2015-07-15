@@ -9,6 +9,7 @@ uniform float timer;
 uniform vec3 velocity;
 uniform float multiplier;
 uniform float randomNum;
+uniform float rotation;
 
 uniform float audioLevels[128];
 vec3 getClosestPointOnPalantirLogo(vec3 pos) {
@@ -21,15 +22,16 @@ vec3 getClosestPointOnPalantirLogo(vec3 pos) {
 }
 
 vec3 getPullToPalantirLogo(vec3 pos) {
+    float dist = sqrt(pos.x * pos.x + pos.y * pos.y);
     vec3 closestPoint = getClosestPointOnPalantirLogo(pos).xyz;
-    return vec3((-pos.x + closestPoint.x) * .005,
-                (-pos.y + closestPoint.y) * .005,
-                (-pos.z + closestPoint.z) * .005);
+    return vec3((-pos.x + closestPoint.x) / (dist*200.0),
+                (-pos.y + closestPoint.y) / (dist*200.0),
+                (-pos.z + closestPoint.z) / (dist*200.0));
 }
 
 bool onLogo(vec3 pos) {
     float dist = sqrt(pos.x * pos.x + pos.y * pos.y);
-    return (dist < 1.3) && (dist > 0.7) && (pos.z > -0.3) && (pos.z < 0.3);
+    return (dist < 1.1) && (dist > 0.9) && (pos.z > -0.2) && (pos.z < 0.2);
 }
 
 float rand(vec2 co){
@@ -41,23 +43,9 @@ float getAngle(float x, float y) {
 }
 void main() 
 {
-    vec3 origin = texture2D( origin, vUv ).xyz;
     vec3 pos = texture2D( tPositions, vUv ).xyz;
     vec3 vel = texture2D( tVelocities, vUv).xyz;
     vec3 palantirForce = getPullToPalantirLogo(pos).xyz;
-
-    /*pos.x += snoise(vec4(pos.x, pos.y, pos.z, timer/10000.0)) * 0.01;*/
-    /*pos.y += snoise(vec4(pos.x, pos.y, pos.z, 1.352+timer/10000.0)) * 0.01;*/
-    /*pos.z += snoise(vec4(pos.x, pos.y, pos.z, 12.352+timer/10000.0)) * 0.01;*/
-
-
-    /*pos.x += gravityForce.x;*/
-    /*pos.y += gravityForce.y;*/
-    /*pos.z += gravityForce.z;*/
-
-    /*pos.x += palantirForce.x;*/
-    /*pos.y += palantirForce.y;*/
-    /*pos.z += palantirForce.z;*/
 
     bool isOnLogo = onLogo(pos);
     float BUCKETS = 85.0;
@@ -65,7 +53,7 @@ void main()
     float PI = 3.1415;
 
     bool isSlow = (vel.x + vel.y + vel.z) < 1.0;
-    float angle = atan(pos.y, pos.x) + PI;
+    float angle = mod(atan(pos.y, pos.x) + PI + rotation, 2.0 * PI);
     float index2 = ((BUCKETS * angle) / ( 2.0 * PI));
     int index = int(index2);
     float audioLevel = 0.0;
@@ -77,12 +65,9 @@ void main()
     }
     if (isOnLogo && isSlow) {
         vec3 closestPoint = getClosestPointOnPalantirLogo(pos).xyz;
-        vel.x += (closestPoint.x * audioLevel * audioLevel ) * 0.03; 
-        vel.y += (closestPoint.y * audioLevel * audioLevel ) * 0.03; 
-        vel.z += (closestPoint.z * audioLevel * audioLevel ) * 0.3; 
-        vel.x -= palantirForce.x * 10.0;
-        vel.y -= palantirForce.y * 10.0;
-        vel.z -= palantirForce.z * 10.0;
+        vel.x += (closestPoint.x * audioLevel * audioLevel ) * 0.03 - palantirForce.x * 10.0; 
+        vel.y += (closestPoint.y * audioLevel * audioLevel ) * 0.03 - palantirForce.y * 10.0; 
+        vel.z += (closestPoint.z * audioLevel * audioLevel ) * 0.30 - palantirForce.y * 10.0;
         vel.x += randomNum ;
         vel.y += randomNum ;
         vel.z += 5.0 * randomNum ;
@@ -91,24 +76,9 @@ void main()
         vel.y += palantirForce.y * 1.5;
         vel.z += palantirForce.z * 1.5;
     }
-    vel.x *= 0.90;
-    vel.y *= 0.90;
-    vel.z *= 0.90;
-
-
-    /*vel.x = 0.0020;*/
-    /*vel.y = 0.0020;*/
-    /*vel.z = 0.0020;*/
-    
-
-    // pos.y -= randomNum * 0.001;
-
-
-
-
-    /*pos.x = origin.x * multiplier;*/
-    /*pos.y = origin.y * multiplier;*/
-    /*pos.z = origin.z * multiplier;*/
+    vel.x *= 0.95;
+    vel.y *= 0.95;
+    vel.z *= 0.95;
 
     // Write new position out
     gl_FragColor = vec4(vel, 1.0);

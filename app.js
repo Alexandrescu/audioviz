@@ -23,7 +23,8 @@
     app.controller('MainController', ['$scope', 'audioAnalyserService', function($scope, audioAnalyserService){
         $scope.messageforyall = 'Look at the pretty picture'; 
         $scope.audioAnalyser = new audioAnalyserService.Analyser();
-        $scope.audioAnalyser.loadSong('./app/debug/stendecklikefallingcrystals.mp3');
+        //$scope.audioAnalyser.loadSong('./app/debug/stendecklikefallingcrystals.mp3');
+        $scope.audioAnalyser.loadSong('./app/debug/mitisendeavors.mp3');
         //$scope.audioAnalyser.loadSong('./app/debug/uppermostflow.mp3');
     }])
     console.log('[LOG] Loaded App Module');

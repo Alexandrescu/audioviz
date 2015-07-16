@@ -75,9 +75,9 @@ void main()
     bool isSlow = (vel.x + vel.y + vel.z) < 1.0;
     float angle = mod(atan(pos.y, pos.x) + PI + rotation, 2.0 * PI);
     float index2 = ((BUCKETS * angle) / ( 2.0 * PI));
-    int index = int(index2) + 3;
+    int index = int(index2) + 1;
     float audioLevel = 0.0;
-    for (int x = 0; x < 88; x++) {
+    for (int x = 0; x < 85; x++) {
         if (x == index) {
             /*audioLevel = audioLevels[x] * ( 1.0 - abs(index2 - float(index) - .5));*/
             audioLevel = audioLevels[x];

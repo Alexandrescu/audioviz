@@ -2,6 +2,7 @@
 
 <script type="x-shader/x-vertex" id="fboRenderVert">
 uniform sampler2D map;
+uniform sampler2D bottomMap;
 
 uniform float width;
 uniform float height;
@@ -10,6 +11,7 @@ uniform float rotation;
 uniform float pointSize;
 
 varying vec2 vUv;
+varying vec2 bottomvUv;
 varying vec4 vPosition;
 varying vec3 customColor;
 
@@ -20,21 +22,28 @@ float rand(vec2 co) {
 
 
 void main() {
-    vUv = position.xy + vec2( 0.5 / width, 0.5 / height );
+    if (position.x > 100.0) {
+        vUv = position.xy + vec2( 0.5 / width, 0.5 / height );
+        vec3 position = ( texture2D( bottomMap, vUv ).rgb  );
+        customColor.x = 125.0;
+        customColor.y = 125.0;
+        customColor.z = 125.0;
+        gl_PointSize = 1.0;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    } else {
+        vUv = position.xy + vec2( 0.5 / width, 0.5 / height );
+        vec3 position = ( texture2D( map, vUv ).rgb  );
+        float PI = 3.1415;
 
-    vec3 position = ( texture2D( map, vUv ).rgb  );
-
-    float PI = 3.1415;
-
-    float angle = mod(atan(position.y, position.x) + PI + rotation, 2.0 * PI);
-    float f = angle / (PI * 2.0) * 6.0;
-    customColor.x = sin(f + 0.0) * 127.0 + 128.0;
-    customColor.y = sin(f + 2.0 * (PI / 3.0)) * 127.0 + 128.0;
-    customColor.z = sin(f + 4.0 * (PI / 3.0)) * 127.0 + 128.0;
-    
-    gl_PointSize = 1.0;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-
+        float angle = mod(atan(position.y, position.x) + PI + rotation, 2.0 * PI);
+        float f = angle / (PI * 2.0) * 6.0;
+        customColor.x = sin(f + 0.0) * 127.0 + 128.0;
+        customColor.y = sin(f + 2.0 * (PI / 3.0)) * 127.0 + 128.0;
+        customColor.z = sin(f + 4.0 * (PI / 3.0)) * 127.0 + 128.0;
+        
+        gl_PointSize = 1.0;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    }
 }
 </script>
 <script type="x-shader/x-fragment" id="fboRenderFrag">

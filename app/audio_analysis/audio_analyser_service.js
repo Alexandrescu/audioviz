@@ -78,6 +78,11 @@
                 barHeight = this.dataArray[i];
                 audioData[LEVELS[i]] = barHeight / 60;
             }
+            audioData.bassLevel = 0
+            for (var i = 60; i < bufferLength; ++i) {
+                audioData.bassLevel += audioData[LEVELS[i]];
+            }
+            audioData.bassLevel *= 0.05;
             return audioData;
         }
 

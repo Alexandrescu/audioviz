@@ -40,7 +40,15 @@
             simPositionFragmentShader: {
                 url: 'app/presets/particle_sun/shaders/sim_pos_frag.c',
                 shader: null
-            }
+            },
+            simBottomHatVertexShader: {
+                url: 'app/presets/particle_sun/shaders/sim_vertex.c',
+                shader: null
+            },
+            simBottomHatFragmentShader: {
+                url: 'app/presets/particle_sun/shaders/sim_bottom_hat_frag.c',
+                shader: null
+            },
         };
 
         function getShaders() {
@@ -72,12 +80,12 @@
             var camera, scene;
             var geometry, material, mesh, mesh2, material2;
             var texSize = 1024;
+            var bottomTexSize = 512;
             var dispSize = {x:window.innerWidth, y:window.innerHeight};
             var velocities, positions;
-            var positionTexture, velocityTexture;
+            var circleParticles, bottomParticles;
             var velocitySimShader, positionSimShader;
             var rtTexturePos, rtTexturePos2;
-            var fboParticles;
             var renderer = new THREE.WebGLRenderer();
             var timer=0;
             var stats;
@@ -91,14 +99,14 @@
                     }
                 }
                 levels.sort();
-                velocitySimShader.uniforms.multiplier.value = levels[levels.length-2] * 1.1;
+                circleParticles.velocitySimShader.uniforms.multiplier.value = levels[levels.length-2] * 1.1;
 
                 var tlevels = [];
                 for (var level in audioData) {
                     tlevels.push(audioData[level]);
                 }
-
-                velocitySimShader.uniforms.audioLevels.value = tlevels;
+                bottomParticles.velocitySimShader.uniforms.multiplier.value = audioData.bassLevel;
+                circleParticles.velocitySimShader.uniforms.audioLevels.value = tlevels;
             }
             function init() {
                 camera = new THREE.PerspectiveCamera(15, window.innerWidth / window.innerHeight, 1, 1000000);
@@ -106,90 +114,185 @@
 
                 scene = new THREE.Scene();
 
-                // Initialie positions to a cube
-                var positions = new Float32Array( texSize * texSize * 3 );
-                var velocities = new Float32Array( texSize * texSize * 3 );
-                for (var i=0; i < positions.length; i+=3) {
-                    positions[i] = (Math.random() - .5) * .5 ;
-                    positions[i+1] = (Math.random() - .5) * .5 ;
-                    positions[i+2] = (Math.random() - .5) * .5 ;
-                    velocities[i] = 0.0;
-                    velocities[i+1] = 0.0;
-                    velocities[i+2] = 0.0;
+                circleParticles = {};
+                bottomParticles = {};
+
+                function initCircleParticles() {
+                    // Initializes positions to a cube
+                    var positions = new Float32Array( texSize * texSize * 3 );
+                    var velocities = new Float32Array( texSize * texSize * 3 );
+                    for (var i=0; i < positions.length; i+=3) {
+                        positions[i] = (Math.random() - .5) * .5 ;
+                        positions[i+1] = (Math.random() - .5) * .5 ;
+                        positions[i+2] = (Math.random() - .5) * .5 ;
+                        velocities[i] = 0.0;
+                        velocities[i+1] = 0.0;
+                        velocities[i+2] = 0.0;
+                    }
+
+                    // Calcultes the change in velocity & outputs it out 
+                    circleParticles.velocityTexture = new THREE.DataTexture(velocities, texSize, texSize, THREE.RGBFormat, THREE.FloatType);
+                    circleParticles.velocityTexture.minFilter = THREE.NearestFilter;
+                    circleParticles.velocityTexture.magFilter = THREE.NearestFilter;
+                    circleParticles.velocityTexture.needsUpdate = true;
+
+                    // outputs data no
+                    circleParticles.positionTexture = new THREE.DataTexture(positions, texSize, texSize, THREE.RGBFormat, THREE.FloatType);
+                    circleParticles.positionTexture.minFilter = THREE.NearestFilter;
+                    circleParticles.positionTexture.magFilter = THREE.NearestFilter;
+                    circleParticles.positionTexture.needsUpdate = true;
+
+                    // Initialize shaders
+                    circleParticles.velocitySimShader = new THREE.ShaderMaterial({
+                        uniforms: {
+                            audioLevels: { type: "fv1", value: [1, 0.5, 3, 2]},
+                            multiplier: { type: "f", value: 0.0},
+                            origin: { type: "t", value: circleParticles.positionTexture },
+                            timer: { type: "f", value: 0},
+                            tPositions: { type: "t", value: circleParticles.positionTexture },
+                            tVelocities: { type: "t", value: circleParticles.velocityTexture },
+                            randomNum: {type : "f", value: 0.02},
+                            rotation: {type : "f", value: 0.00}
+                        },
+                        vertexShader: shaders.simVelocityVertexShader.shader,
+                        fragmentShader: shaders.simVelocityFragmentShader.shader
+                    });
+
+                    circleParticles.positionSimShader = new THREE.ShaderMaterial({
+                        uniforms: {
+                            audioLevels: { type: "t", value: null },
+                            multiplier: { type: "f", value: 0.0},
+                            origin: { type: "t", value: circleParticles.positionTexture },
+                            timer: { type: "f", value: 0},
+                            tPositions: { type: "t", value: circleParticles.positionTexture },
+                            tVelocities: { type: "t", value: circleParticles.velocityTexture },
+                        },
+                        vertexShader: shaders.simPositionVertexShader.shader,
+                        fragmentShader: shaders.simPositionFragmentShader.shader
+                    });
+
+                    circleParticles.rtTexturePos = new THREE.WebGLRenderTarget(texSize, texSize, {
+                        wrapS:THREE.RepeatWrapping,
+                        wrapT:THREE.RepeatWrapping,
+                        minFilter: THREE.NearestFilter,
+                        magFilter: THREE.NearestFilter,
+                        format: THREE.RGBFormat,
+                        type:THREE.FloatType,
+                        stencilBuffer: false
+                    });
+                    circleParticles.rtTexturePos2 = circleParticles.rtTexturePos.clone();
+
+                    circleParticles.fboParticlePositions = new THREE.FBOUtils( texSize, renderer, circleParticles.positionSimShader );
+                    circleParticles.fboParticlePositions.renderToTexture(circleParticles.rtTexturePos, circleParticles.rtTexturePos2);
+                    circleParticles.fboParticlePositions.in = circleParticles.rtTexturePos;
+                    circleParticles.fboParticlePositions.out = circleParticles.rtTexturePos2;
+
+
+                    circleParticles.rtTextureVel = new THREE.WebGLRenderTarget(texSize, texSize, {
+                        wrapS:THREE.RepeatWrapping,
+                        wrapT:THREE.RepeatWrapping,
+                        minFilter: THREE.NearestFilter,
+                        magFilter: THREE.NearestFilter,
+                        format: THREE.RGBFormat,
+                        type:THREE.FloatType,
+                        stencilBuffer: false
+                    });
+                    circleParticles.rtTextureVel2 = circleParticles.rtTextureVel.clone();
+
+                    circleParticles.fboParticleVelocities = new THREE.FBOUtils( texSize, renderer, circleParticles.velocitySimShader );
+                    circleParticles.fboParticleVelocities.in = circleParticles.rtTextureVel;
+                    circleParticles.fboParticleVelocities.out = circleParticles.rtTextureVel2;
                 }
 
-                // Calcultes the change in velocity & outputs it out 
-                velocityTexture = new THREE.DataTexture(velocities, texSize, texSize, THREE.RGBFormat, THREE.FloatType);
-                velocityTexture.minFilter = THREE.NearestFilter;
-                velocityTexture.magFilter = THREE.NearestFilter;
-                velocityTexture.needsUpdate = true;
+                function initBottomParticles() {
+                    // Initializes positions to a cube
+                    var positions = new Float32Array( bottomTexSize * bottomTexSize * 3 );
+                    var velocities = new Float32Array( bottomTexSize * bottomTexSize * 3 );
+                    for (var i=0; i < positions.length; i+=3) {
+                        positions[i] = (Math.random() - .5) * 2.5;
+                        positions[i+1] = (Math.random() - .5) * .5 ;
+                        positions[i+2] = (Math.random() - .5) * .5 ;
+                        velocities[i] = 0.0;
+                        velocities[i+1] = 0.0;
+                        velocities[i+2] = 0.0;
+                    }
 
-                // outputs data no
-                positionTexture = new THREE.DataTexture(positions, texSize, texSize, THREE.RGBFormat, THREE.FloatType);
-                positionTexture.minFilter = THREE.NearestFilter;
-                positionTexture.magFilter = THREE.NearestFilter;
-                positionTexture.needsUpdate = true;
+                    // Calcultes the change in velocity & outputs it out 
+                    bottomParticles.velocityTexture = new THREE.DataTexture(velocities, bottomTexSize, bottomTexSize, THREE.RGBFormat, THREE.FloatType);
+                    bottomParticles.velocityTexture.minFilter = THREE.NearestFilter;
+                    bottomParticles.velocityTexture.magFilter = THREE.NearestFilter;
+                    bottomParticles.velocityTexture.needsUpdate = true;
+
+                    // outputs data no
+                    bottomParticles.positionTexture = new THREE.DataTexture(positions, bottomTexSize, bottomTexSize, THREE.RGBFormat, THREE.FloatType);
+                    bottomParticles.positionTexture.minFilter = THREE.NearestFilter;
+                    bottomParticles.positionTexture.magFilter = THREE.NearestFilter;
+                    bottomParticles.positionTexture.needsUpdate = true;
+
+                    // Initialize shaders
+                    bottomParticles.velocitySimShader = new THREE.ShaderMaterial({
+                        uniforms: {
+                            audioLevels: { type: "fv1", value: [1, 0.5, 3, 2]},
+                            multiplier: { type: "f", value: 0.0},
+                            origin: { type: "t", value: bottomParticles.positionTexture },
+                            timer: { type: "f", value: 0},
+                            tPositions: { type: "t", value: bottomParticles.positionTexture },
+                            tVelocities: { type: "t", value: bottomParticles.velocityTexture },
+                            randomNum: {type : "f", value: 0.02},
+                            rotation: {type : "f", value: 0.00}
+                        },
+                        vertexShader: shaders.simVelocityVertexShader.shader,
+                        fragmentShader: shaders.simBottomHatFragmentShader.shader
+                    });
+
+                    bottomParticles.positionSimShader = new THREE.ShaderMaterial({
+                        uniforms: {
+                            audioLevels: { type: "t", value: null },
+                            multiplier: { type: "f", value: 0.0},
+                            origin: { type: "t", value: bottomParticles.positionTexture },
+                            timer: { type: "f", value: 0},
+                            tPositions: { type: "t", value: bottomParticles.positionTexture },
+                            tVelocities: { type: "t", value: bottomParticles.velocityTexture },
+                        },
+                        vertexShader: shaders.simPositionVertexShader.shader,
+                        fragmentShader: shaders.simPositionFragmentShader.shader
+                    });
+
+                    bottomParticles.rtTexturePos = new THREE.WebGLRenderTarget(bottomTexSize, bottomTexSize, {
+                        wrapS:THREE.RepeatWrapping,
+                        wrapT:THREE.RepeatWrapping,
+                        minFilter: THREE.NearestFilter,
+                        magFilter: THREE.NearestFilter,
+                        format: THREE.RGBFormat,
+                        type:THREE.FloatType,
+                        stencilBuffer: false
+                    });
+                    bottomParticles.rtTexturePos2 = bottomParticles.rtTexturePos.clone();
+
+                    bottomParticles.fboParticlePositions = new THREE.FBOUtils( bottomTexSize, renderer, bottomParticles.positionSimShader );
+                    bottomParticles.fboParticlePositions.renderToTexture(bottomParticles.rtTexturePos, bottomParticles.rtTexturePos2);
+                    bottomParticles.fboParticlePositions.in = bottomParticles.rtTexturePos;
+                    bottomParticles.fboParticlePositions.out = bottomParticles.rtTexturePos2;
 
 
+                    bottomParticles.rtTextureVel = new THREE.WebGLRenderTarget(bottomTexSize, bottomTexSize, {
+                        wrapS:THREE.RepeatWrapping,
+                        wrapT:THREE.RepeatWrapping,
+                        minFilter: THREE.NearestFilter,
+                        magFilter: THREE.NearestFilter,
+                        format: THREE.RGBFormat,
+                        type:THREE.FloatType,
+                        stencilBuffer: false
+                    });
+                    bottomParticles.rtTextureVel2 = bottomParticles.rtTextureVel.clone();
 
-                // Following two textures are for rendering. 
-                rtTexturePos = new THREE.WebGLRenderTarget(texSize, texSize, {
-                    wrapS:THREE.RepeatWrapping,
-                    wrapT:THREE.RepeatWrapping,
-                    minFilter: THREE.NearestFilter,
-                    magFilter: THREE.NearestFilter,
-                    format: THREE.RGBFormat,
-                    type:THREE.FloatType,
-                    stencilBuffer: false
-                });
-                rtTexturePos2 = rtTexturePos.clone();
+                    bottomParticles.fboParticleVelocities = new THREE.FBOUtils( bottomTexSize, renderer, bottomParticles.velocitySimShader );
+                    bottomParticles.fboParticleVelocities.in = bottomParticles.rtTextureVel;
+                    bottomParticles.fboParticleVelocities.out = bottomParticles.rtTextureVel2;
+                }
 
-                rtTextureVel = new THREE.WebGLRenderTarget(texSize, texSize, {
-                    wrapS:THREE.RepeatWrapping,
-                    wrapT:THREE.RepeatWrapping,
-                    minFilter: THREE.NearestFilter,
-                    magFilter: THREE.NearestFilter,
-                    format: THREE.RGBFormat,
-                    type:THREE.FloatType,
-                    stencilBuffer: false
-                });
-                rtTextureVel2 = rtTextureVel.clone();
-                velocitySimShader = new THREE.ShaderMaterial({
-                    uniforms: {
-                        audioLevels: { type: "fv1", value: [1, 0.5, 3, 2]},
-                        multiplier: { type: "f", value: 0.0},
-                        origin: { type: "t", value: positionTexture },
-                        timer: { type: "f", value: 0},
-                        tPositions: { type: "t", value: positionTexture },
-                        tVelocities: { type: "t", value: velocityTexture },
-                        randomNum: {type : "f", value: 0.02},
-                        rotation: {type : "f", value: 0.00}
-                    },
-                    vertexShader: shaders.simVelocityVertexShader.shader,
-                    fragmentShader: shaders.simVelocityFragmentShader.shader
-                });
-
-                positionSimShader = new THREE.ShaderMaterial({
-                    uniforms: {
-                        audioLevels: { type: "t", value: null },
-                        multiplier: { type: "f", value: 0.0},
-                        origin: { type: "t", value: positionTexture },
-                        timer: { type: "f", value: 0},
-                        tPositions: { type: "t", value: positionTexture },
-                        tVelocities: { type: "t", value: velocityTexture },
-                    },
-                    vertexShader: shaders.simPositionVertexShader.shader,
-                    fragmentShader: shaders.simPositionFragmentShader.shader
-                })
-
-                fboParticleVelocities = new THREE.FBOUtils( texSize, renderer, velocitySimShader );
-                fboParticleVelocities.in = rtTextureVel;
-                fboParticleVelocities.out = rtTextureVel2;
-
-                fboParticlePositions = new THREE.FBOUtils( texSize, renderer, positionSimShader );
-                fboParticlePositions.renderToTexture(rtTexturePos, rtTexturePos2);
-                fboParticlePositions.in = rtTexturePos;
-                fboParticlePositions.out = rtTexturePos2;
+                initCircleParticles();
+                initBottomParticles();
 
                 geometry2 = new THREE.Geometry();
 
@@ -200,9 +303,17 @@
                     geometry2.vertices.push( vertex );
                 }
 
+                for ( var i = 0, l = bottomTexSize * bottomTexSize; i < l; i ++ ) {
+                    var vertex = new THREE.Vector3();
+                    vertex.x = 1000 + ( i % bottomTexSize ) / bottomTexSize ;
+                    vertex.y = 1000 + Math.floor( i / bottomTexSize ) / bottomTexSize;
+                    geometry2.vertices.push( vertex );
+                }
+
                 material2 = new THREE.ShaderMaterial( {
                     uniforms: {
-                        "map": { type: "t", value: rtTexturePos },
+                        "map": { type: "t", value: null },
+                        "bottomMap": { type: "t", value: null },
                         "width": { type: "f", value: texSize },
                         "height": { type: "f", value: texSize },
                         "pointSize": { type: "f", value: 0.0 },
@@ -234,44 +345,74 @@
 
             var angle = 0;
             var diff = Math.PI / 2000; 
-            function animate(t) {
-                requestAnimationFrame(animate);
-                // color it!
-                material2.uniforms.rotation.value = angle;
-
-                //console.log('[LOG] Calculating velocities...');
+            function calculateCircleParticles(t) {
                 // Calculate the new particle velocities
-                velocitySimShader.uniforms.timer.value = t;
-                var tmp = fboParticleVelocities.in;
-                fboParticleVelocities.in = fboParticleVelocities.out;
-                fboParticleVelocities.out = tmp;
-                velocitySimShader.uniforms.tVelocities.value = fboParticleVelocities.in;
-                velocitySimShader.uniforms.tPositions.value = fboParticlePositions.out;
-                velocitySimShader.uniforms.randomNum.value = (Math.random() - 0.5) * 0.005;
-                velocitySimShader.uniforms.rotation.value = angle;
-                fboParticleVelocities.simulate(fboParticleVelocities.out);
+                circleParticles.velocitySimShader.uniforms.timer.value = t;
+                var tmp = circleParticles.fboParticleVelocities.in;
+                circleParticles.fboParticleVelocities.in = circleParticles.fboParticleVelocities.out;
+                circleParticles.fboParticleVelocities.out = tmp;
+                circleParticles.velocitySimShader.uniforms.tVelocities.value = circleParticles.fboParticleVelocities.in;
+                circleParticles.velocitySimShader.uniforms.tPositions.value = circleParticles.fboParticlePositions.out;
+                circleParticles.velocitySimShader.uniforms.randomNum.value = (Math.random() - 0.5) * 0.005;
+                circleParticles.velocitySimShader.uniforms.rotation.value = angle;
+                circleParticles.fboParticleVelocities.simulate(circleParticles.fboParticleVelocities.out);
                 //console.log('[LOG] Calculating velocities... done');
                 //
 
 
                 //console.log('[LOG] Calculating positions...');
                 // Calculate new positions
-                positionSimShader.uniforms.timer.value = t;
-                var tmp = fboParticlePositions.in;
-                fboParticlePositions.in = fboParticlePositions.out;
-                fboParticlePositions.out = tmp;
-                positionSimShader.uniforms.tPositions.value = fboParticlePositions.in;
-                positionSimShader.uniforms.tVelocities.value = fboParticleVelocities.out;
-                fboParticlePositions.simulate(fboParticlePositions.out);
+                circleParticles.positionSimShader.uniforms.timer.value = t;
+                var tmp = circleParticles.fboParticlePositions.in;
+                circleParticles.fboParticlePositions.in = circleParticles.fboParticlePositions.out;
+                circleParticles.fboParticlePositions.out = tmp;
+                circleParticles.positionSimShader.uniforms.tPositions.value = circleParticles.fboParticlePositions.in;
+                circleParticles.positionSimShader.uniforms.tVelocities.value = circleParticles.fboParticleVelocities.out;
+                circleParticles.fboParticlePositions.simulate(circleParticles.fboParticlePositions.out);
                 //console.log('[LOG] Calculating positions... done');
 
                 angle += diff;
+            }
 
-                material2.uniforms.map.value = fboParticlePositions.out;
+            function calculateBottomParticles(t) {
+                // Calculate the new particle velocities
+                bottomParticles.velocitySimShader.uniforms.timer.value = t;
+                var tmp = bottomParticles.fboParticleVelocities.in;
+                bottomParticles.fboParticleVelocities.in = bottomParticles.fboParticleVelocities.out;
+                bottomParticles.fboParticleVelocities.out = tmp;
+                bottomParticles.velocitySimShader.uniforms.tVelocities.value = bottomParticles.fboParticleVelocities.in;
+                bottomParticles.velocitySimShader.uniforms.tPositions.value = bottomParticles.fboParticlePositions.out;
+                bottomParticles.velocitySimShader.uniforms.randomNum.value = (Math.random() - 0.5) * 0.005;
+                bottomParticles.velocitySimShader.uniforms.rotation.value = angle;
+                bottomParticles.fboParticleVelocities.simulate(bottomParticles.fboParticleVelocities.out);
+                //console.log('[LOG] Calculating velocities... done');
+
+                //console.log('[LOG] Calculating positions...');
+                // Calculate new positions
+                bottomParticles.positionSimShader.uniforms.timer.value = t;
+                var tmp = bottomParticles.fboParticlePositions.in;
+                bottomParticles.fboParticlePositions.in = bottomParticles.fboParticlePositions.out;
+                bottomParticles.fboParticlePositions.out = tmp;
+                bottomParticles.positionSimShader.uniforms.tPositions.value = bottomParticles.fboParticlePositions.in;
+                bottomParticles.positionSimShader.uniforms.tVelocities.value = bottomParticles.fboParticleVelocities.out;
+                bottomParticles.fboParticlePositions.simulate(bottomParticles.fboParticlePositions.out);
+                //console.log('[LOG] Calculating positions... done');
+            }
+            function animate(t) {
+                requestAnimationFrame(animate);
+                // color it!
+                material2.uniforms.rotation.value = angle;
+
+                //console.log('[LOG] Calculating velocities...');
+                calculateCircleParticles(t);
+                calculateBottomParticles(t);
+
+
+                material2.uniforms.map.value = circleParticles.fboParticlePositions.out;
+                material2.uniforms.bottomMap.value = bottomParticles.fboParticlePositions.out;
                 controls.update();
                 renderer.render( scene, camera );
             }
-
 
             init();
             animate(new Date().getTime());

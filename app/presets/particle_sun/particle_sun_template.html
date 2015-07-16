@@ -5,11 +5,13 @@ uniform sampler2D map;
 
 uniform float width;
 uniform float height;
+uniform float rotation;
 
 uniform float pointSize;
 
 varying vec2 vUv;
 varying vec4 vPosition;
+varying vec3 customColor;
 
 // Pseudo random number generator
 float rand(vec2 co) {
@@ -22,8 +24,17 @@ void main() {
 
     vec3 position = ( texture2D( map, vUv ).rgb  );
 
-    gl_PointSize = 2.0;
+    float PI = 3.1415;
+
+    float angle = mod(atan(position.y, position.x) + PI + rotation, 2.0 * PI);
+    float f = angle / (PI * 2.0) * 6.0;
+    customColor.x = sin(f + 0.0) * 127.0 + 128.0;
+    customColor.y = sin(f + 2.0 * (PI / 3.0)) * 127.0 + 128.0;
+    customColor.z = sin(f + 4.0 * (PI / 3.0)) * 127.0 + 128.0;
+    
+    gl_PointSize = 1.0;
     gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
 }
 </script>
 <script type="x-shader/x-fragment" id="fboRenderFrag">
@@ -33,10 +44,11 @@ uniform vec3 color;
 
 varying vec2 vUv;
 varying vec4 vPosition;
+varying vec3 customColor;
 
 void main() 
 {
-    gl_FragColor = vec4(color.x,color.y,color.z,0.3);
+    gl_FragColor = vec4(customColor.x / 255.0, customColor.y / 255.0, customColor.z / 255.0, 0.22);
     gl_FragColor *= 1.5;
 }
 

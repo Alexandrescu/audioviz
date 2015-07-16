@@ -22,11 +22,11 @@ vec3 getClosestPointOnPalantirLogo(vec3 pos) {
 }
 
 vec3 getPullToPalantirLogo(vec3 pos) {
-    float dist = sqrt(pos.x * pos.x + pos.y * pos.y);
+    float dist = max(sqrt(pos.x * pos.x + pos.y * pos.y), 0.55);
     vec3 closestPoint = getClosestPointOnPalantirLogo(pos).xyz;
-    return vec3((-pos.x + closestPoint.x) / (dist*200.0),
-                (-pos.y + closestPoint.y) / (dist*200.0),
-                (-pos.z + closestPoint.z) / (dist*200.0));
+    return vec3((-pos.x + closestPoint.x) / (dist*dist*40.0),
+                (-pos.y + closestPoint.y) / (dist*dist*40.0),
+                (-pos.z + closestPoint.z) / (dist*dist*40.0));
 }
 
 bool onLogo(vec3 pos) {
@@ -72,13 +72,13 @@ void main()
         vel.y += randomNum ;
         vel.z += 5.0 * randomNum ;
     } else {
-        vel.x += palantirForce.x * 1.5;
-        vel.y += palantirForce.y * 1.5;
-        vel.z += palantirForce.z * 1.5;
+        vel.x += palantirForce.x * 1.0;
+        vel.y += palantirForce.y * 1.0;
+        vel.z += palantirForce.z * 1.0;
     }
-    vel.x *= 0.95;
-    vel.y *= 0.95;
-    vel.z *= 0.95;
+    vel.x *= 0.94;
+    vel.y *= 0.94;
+    vel.z *= 0.94;
 
     // Write new position out
     gl_FragColor = vec4(vel, 1.0);

@@ -205,9 +205,9 @@
                         "map": { type: "t", value: rtTexturePos },
                         "width": { type: "f", value: texSize },
                         "height": { type: "f", value: texSize },
-                        "pointSize": { type: "f", value: 1 },
+                        "pointSize": { type: "f", value: 0.0 },
                         "effector" : { type: "f", value: 0 },
-                        "color" : {type: "c", value: new THREE.Color(0.2, 0.3, 0.1)}
+                        "rotation" : {type: "f", value: 0.0}
                     },
                     vertexShader: document.getElementById('fboRenderVert').innerHTML,
                     fragmentShader: document.getElementById('fboRenderFrag').innerHTML,
@@ -233,11 +233,11 @@
             }
 
             var angle = 0;
-            var diff = Math.PI / 1000; 
+            var diff = Math.PI / 2000; 
             function animate(t) {
                 requestAnimationFrame(animate);
                 // color it!
-                material2.uniforms.color.value = getColor(angle);
+                material2.uniforms.rotation.value = angle;
 
                 //console.log('[LOG] Calculating velocities...');
                 // Calculate the new particle velocities
@@ -248,7 +248,7 @@
                 velocitySimShader.uniforms.tVelocities.value = fboParticleVelocities.in;
                 velocitySimShader.uniforms.tPositions.value = fboParticlePositions.out;
                 velocitySimShader.uniforms.randomNum.value = (Math.random() - 0.5) * 0.005;
-                velocitySimShader.uniforms.rotation.value = angle * .5;
+                velocitySimShader.uniforms.rotation.value = angle;
                 fboParticleVelocities.simulate(fboParticleVelocities.out);
                 //console.log('[LOG] Calculating velocities... done');
                 //
@@ -267,8 +267,6 @@
 
                 angle += diff;
 
-                //velocitySimShader.uniforms.tPositions.value = fboParticles.in;
-                //fboParticles.simulate(fboParticles.out);
                 material2.uniforms.map.value = fboParticlePositions.out;
                 controls.update();
                 renderer.render( scene, camera );
